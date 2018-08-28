@@ -1,5 +1,5 @@
 [package]
-name = "libsodium-sys"
+name = "sodium"
 version = "0.1.0"
 authors = ["Mark Nguyen <misteraznkid@yahoo.com>"]
 build = "build.rs"
