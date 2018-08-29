@@ -83,14 +83,14 @@ pub mod hash {
 
 pub mod random {
 	use libc::uint32_t;
-	// use libc::size_t;
-	// use libc::c_void;
+	use libc::size_t;
+	use libc::c_void;
 
 	#[link(name = "sodium")]
 	extern {
 		fn randombytes_random() -> uint32_t;
 		fn randombytes_uniform(_: uint32_t) -> uint32_t;
-		// fn randombytes_buf(buf: *const c_void, size: size_t);
+		fn randombytes_buf(buf: *const c_void, size: size_t);
 	}
 
 	pub fn int() -> u32 {
@@ -109,11 +109,9 @@ pub mod random {
 
 	pub fn buffer(buf: &mut[u8]) {
 		super::init();
-		buf.as_mut_ptr();
-		assert!(false);
-		// unsafe {
-			// randombytes_buf(buf.as_prt(), buf.len())
-		// }
+		unsafe {
+			randombytes_buf(buf.as_mut_ptr() as *const c_void, buf.len())
+		}
 	}
 }
 

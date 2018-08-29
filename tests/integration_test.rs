@@ -23,6 +23,8 @@ fn random_range() {
 fn random_buffer() {
 	let buffer = &mut [0, 0, 0, 0];
 	sodium::random::buffer(buffer);
+	let hex_val = sodium::helpers::bin_to_hex(&buffer[..]);
+	println!("{}", hex_val);
 }
 
 #[test]
