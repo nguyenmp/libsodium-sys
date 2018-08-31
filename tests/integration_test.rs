@@ -15,10 +15,8 @@ fn random_range() {
 
 #[test]
 fn random_buffer() {
-	let buffer = &mut [0, 0, 0, 0];
-	sodium::random::buffer(buffer);
-	let hex_val = sodium::helpers::bin_to_hex(&buffer[..]);
-	println!("{}", hex_val);
+	let buffer = sodium::random::buffer(4);
+	let _ = sodium::helpers::bin_to_hex(&buffer[..]);
 }
 
 #[test]
@@ -44,4 +42,18 @@ fn compute_another_hash_and_verify() {
 	48D95090BC7333B3673F82401CF7AA2E4CB1ECD90296E3F14CB5413F8ED77BE73045B1391\
 	4CDCD6A918";
 	assert_eq!(known_correct_answer.to_lowercase(), hash_hex);
+}
+
+#[test]
+fn derive_key_from_passcode() {
+	let password = "my password";
+	let _ = sodium::hash::password(password);
+}
+
+#[test]
+fn rederive_key_from_passcode() {
+	let password = "my password";
+	let (rehash_data, first_key) = sodium::hash::password(password);
+	let second_key = sodium::hash::re_password(password, &rehash_data);
+	assert_eq!(first_key, second_key);
 }
