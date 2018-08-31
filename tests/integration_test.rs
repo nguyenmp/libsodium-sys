@@ -1,11 +1,5 @@
 extern crate sodium;
 
-// This test simply verifies that we can call into the sodium module
-#[test]
-fn foo_works_in_integration() {
-    assert_eq!("asdff", sodium::foo());
-}
-
 // Many of these tests are applications of the quick start FAQs
 // https://download.libsodium.org/doc/quickstart/
 

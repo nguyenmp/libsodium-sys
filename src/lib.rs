@@ -1,21 +1,5 @@
 extern crate libc;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn foo_and_bar_are_equal() {
-        assert_eq!(super::bar(), super::foo());
-    }
-}
-
-fn bar() -> &'static str {
-    "asdff"
-}
-
-pub fn foo() -> &'static str {
-    bar()
-}
-
 pub mod helpers {
 	use libc::c_char;
 	use libc::c_uchar;
@@ -128,16 +112,4 @@ fn init() {
 	};
 
 	assert!(result >= 0);
-}
-
-#[test]
-fn assert_sodium_init_once() {
-	init();
-}
-
-
-#[test]
-fn assert_sodium_init_twice() {
-	init();
-	init();
 }
