@@ -4,7 +4,6 @@ pub mod helpers {
 	use libc::c_char;
 	use libc::c_uchar;
 	use libc::size_t;
-	use std::ffi::CString;
 
 	#[link(name = "sodium")]
 	extern {
@@ -17,14 +16,24 @@ pub mod helpers {
 
 		// Buffer must be at least bin_len * 2 + 1
 		let hex_max_len = bin.len() * 2 + 1;
-		let hex = CString::new(vec!('0' as u8, hex_max_len as u8)).unwrap();
+		let mut hex = vec!['0' as u8; hex_max_len];
 
 		// The function always returns hex, but we already have hex
 		unsafe {
-			let hex_raw = sodium_bin2hex(hex.into_raw(), hex_max_len,
+			let new_hex = sodium_bin2hex(hex.as_mut_ptr() as *mut c_char, hex.len(),
 				bin.as_ptr(), bin.len());
-			CString::from_raw(hex_raw).into_string().unwrap()
+
 		}
+		let mut index = 0;
+		for i in 0..hex.len() {
+			let byte = hex.get(i).unwrap();
+			if *byte == 0 {
+				index = i;
+				break
+			}
+		}
+		hex.truncate(index);
+		String::from_utf8(hex).unwrap()
 	}
 }
 
@@ -67,7 +76,7 @@ pub mod hash {
 			Some(k) => (k.as_ptr(), k.len()),
 			None => (null(), 0),
 		};
-		let mut output = vec!(0; output_length);
+		let mut output = vec![0; output_length];
 		let _ = unsafe {
 			crypto_generichash(output.as_mut_ptr(), output.len(),
 				input.as_ptr(), input.len() as c_ulonglong,
@@ -160,7 +169,7 @@ pub mod random {
 	// Fills the given buffer with random bytes
 	pub fn buffer(size: usize) -> Vec<u8> {
 		super::init();
-		let mut buffer : Vec<u8> = vec!(0, size as u8);
+		let mut buffer : Vec<u8> = vec![0; size];
 		unsafe {
 			randombytes_buf(buffer.as_mut_ptr() as *const c_void, buffer.len())
 		}
