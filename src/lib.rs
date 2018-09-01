@@ -168,6 +168,37 @@ pub mod random {
 	}
 }
 
+pub mod crypto {
+
+	#[link(name = "sodium")]
+	extern {
+		fn crypto_secretbox_easy(
+			c: *mut c_uchar,
+			m: *const c_uchar, mlen: c_ulonglong,
+			n: *const c_uchar,
+			k: *const c_uchar,
+		) -> c_int;
+		fn crypto_secretbox_noncebytes() -> size_t;
+		fn crypto_secretbox_macbytes() -> size_t;
+	}
+
+	pub fn encrypt(message: &[u8], key: &[u8]) -> Vec<u8> {
+		unsafe {
+			let cypher_len = crypto_secretbox_macbytes() + message.len();
+			let cypher = vec![0; cypher_len];
+			let nonce_len = crypto_secretbox_noncebytes();
+			let nonce = super::random::buffer(nonce_len);
+			crypto_secretbox_easy(
+				cypher.as_mut_ptr(),
+				message.as_ptr(), message.len(),
+				nonce,
+				key.as_ptr(),
+			);
+			cypher
+		}
+	}
+}
+
 use libc::c_int;
 
 #[link(name = "sodium")]
