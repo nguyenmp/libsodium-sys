@@ -47,7 +47,9 @@ fn compute_another_hash_and_verify() {
 #[test]
 fn derive_key_from_passcode() {
 	let password = "my password";
-	let _ = sodium::hash::password(password);
+	let (_, key_1) = sodium::hash::password(password);
+	let (_, key_2) = sodium::hash::password(password);
+	assert_ne!(key_1, key_2);
 }
 
 #[test]
