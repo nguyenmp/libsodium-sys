@@ -169,6 +169,13 @@ pub mod random {
 }
 
 pub mod crypto {
+	use libc::c_uchar;
+	use libc::c_ulonglong;
+	use libc::size_t;
+	use libc::c_int;
+
+	type Nonce = Vec<u8>;
+	type Cipher = Vec<u8>;
 
 	#[link(name = "sodium")]
 	extern {
@@ -180,21 +187,45 @@ pub mod crypto {
 		) -> c_int;
 		fn crypto_secretbox_noncebytes() -> size_t;
 		fn crypto_secretbox_macbytes() -> size_t;
+		fn crypto_secretbox_open_easy(
+			m: *const c_uchar,
+			c: *const c_uchar, clen: c_ulonglong,
+			n: *const c_uchar,
+            k: *const c_uchar,
+        ) -> c_int;
 	}
 
-	pub fn encrypt(message: &[u8], key: &[u8]) -> Vec<u8> {
+	pub fn encrypt(message: &[u8], key: &[u8]) -> (Nonce, Cipher) {
 		unsafe {
 			let cypher_len = crypto_secretbox_macbytes() + message.len();
-			let cypher = vec![0; cypher_len];
+			let mut cypher : Cipher= vec![0; cypher_len];
 			let nonce_len = crypto_secretbox_noncebytes();
-			let nonce = super::random::buffer(nonce_len);
+			let nonce : Nonce = super::random::buffer(nonce_len);
 			crypto_secretbox_easy(
 				cypher.as_mut_ptr(),
-				message.as_ptr(), message.len(),
-				nonce,
+				message.as_ptr(), message.len() as u64,
+				nonce.as_ptr(),
 				key.as_ptr(),
 			);
-			cypher
+			(nonce, cypher)
+		}
+	}
+
+	pub fn decrypt(nonce: Nonce, cipher: Cipher, key: &[u8]) -> Result<Vec<u8>, &'static str> {
+		unsafe {
+			let message_len = cipher.len() - crypto_secretbox_macbytes();
+			let mut message = vec![0; message_len];
+			let result = crypto_secretbox_open_easy(
+				message.as_mut_ptr(),
+				cipher.as_ptr(), cipher.len() as u64,
+				nonce.as_ptr(),
+	            key.as_ptr(),
+	        );
+			match result {
+				0 => Ok(message),
+				-1 => Err("Verification failed"),
+				_ => unreachable!(),
+			}
 		}
 	}
 }

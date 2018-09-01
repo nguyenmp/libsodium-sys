@@ -59,3 +59,17 @@ fn rederive_key_from_passcode() {
 	let second_key = sodium::hash::re_password(password, &rehash_data);
 	assert_eq!(first_key, second_key);
 }
+
+#[test]
+fn encrypt_message_with_passcode() {
+	let message = "my message";
+	let password = "my password";
+	let (_, key) = sodium::hash::password(password);
+	let (nonce, cipher) = sodium::crypto::encrypt(message.as_bytes(), &key[..]);
+	let result = sodium::crypto::decrypt(nonce, cipher, &key[..]);
+	let new_message = match result {
+		Ok(message) => message,
+		Err(message) => panic!(message),
+	};
+	assert_eq!(message, std::str::from_utf8(&new_message[..]).unwrap());
+}
