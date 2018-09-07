@@ -73,3 +73,23 @@ fn encrypt_message_with_passcode() {
 	};
 	assert_eq!(message, std::str::from_utf8(&new_message[..]).unwrap());
 }
+
+#[test]
+fn sign_and_verify() {
+	let message_1 = sodium::sign::Message("my message 1".as_bytes().to_vec());
+	let message_2 = sodium::sign::Message("my message 2".as_bytes().to_vec());
+	let (public_key_1, private_key_1) = sodium::sign::generate_key_pair();
+	let (public_key_2, private_key_2) = sodium::sign::generate_key_pair();
+	let signature_1 = sodium::sign::sign(&message_1, &private_key_1);
+	let signature_2 = sodium::sign::sign(&message_2, &private_key_2);
+	assert!(sodium::sign::check(&message_1, &signature_1, &public_key_1).is_ok());
+	assert!(sodium::sign::check(&message_2, &signature_2, &public_key_2).is_ok());
+
+	assert!(sodium::sign::check(&message_1, &signature_1, &public_key_2).is_err());
+	assert!(sodium::sign::check(&message_1, &signature_2, &public_key_1).is_err());
+	assert!(sodium::sign::check(&message_2, &signature_1, &public_key_1).is_err());
+
+	assert!(sodium::sign::check(&message_1, &signature_2, &public_key_2).is_err());
+	assert!(sodium::sign::check(&message_2, &signature_1, &public_key_2).is_err());
+	assert!(sodium::sign::check(&message_2, &signature_2, &public_key_1).is_err());
+}

@@ -20,7 +20,7 @@ pub mod helpers {
 
 		// The function always returns hex, but we already have hex
 		unsafe {
-			let new_hex = sodium_bin2hex(hex.as_mut_ptr() as *mut c_char, hex.len(),
+			let _ = sodium_bin2hex(hex.as_mut_ptr() as *mut c_char, hex.len(),
 				bin.as_ptr(), bin.len());
 
 		}
@@ -174,6 +174,85 @@ pub mod random {
 			randombytes_buf(buffer.as_mut_ptr() as *const c_void, buffer.len())
 		}
 		buffer
+	}
+}
+
+pub mod sign {
+	use libc::c_uchar;
+	use libc::c_int;
+	use libc::size_t;
+	use libc::c_ulonglong;
+
+	#[link(name = "sodium")]
+	extern {
+		fn crypto_sign_keypair(pk: *mut c_uchar, sk: *mut c_uchar) -> c_int;
+		fn crypto_sign_secretkeybytes() -> size_t;
+		fn crypto_sign_publickeybytes() -> size_t;
+		fn crypto_sign_detached(
+			sig: *mut c_uchar, siglen: *mut c_ulonglong,
+			m: *const c_uchar, mlen: c_ulonglong,
+			sk: *const c_uchar
+		) -> c_int;
+		fn crypto_sign_bytes() -> size_t;
+		fn crypto_sign_verify_detached(
+			sig: *const c_uchar,
+			m: *const c_uchar, mlen: c_ulonglong,
+			pk: *const c_uchar) -> c_int;
+	}
+
+	pub struct PublicKey(Vec<u8>);
+	pub struct PrivateKey(Vec<u8>);
+	pub struct Signature(Vec<u8>);
+	pub struct Message(pub Vec<u8>);
+
+	pub fn generate_key_pair() -> (PublicKey, PrivateKey) {
+		unsafe {
+			let mut public_key_bytes = vec![0; crypto_sign_publickeybytes()];
+			let mut private_key_bytes = vec![0; crypto_sign_secretkeybytes()];
+			crypto_sign_keypair(public_key_bytes.as_mut_ptr(), private_key_bytes.as_mut_ptr());
+			(PublicKey(public_key_bytes), PrivateKey(private_key_bytes))
+		}
+	}
+
+	pub fn sign(message: &Message, private_key: &PrivateKey) -> Signature {
+		// Extract the bytes out of their containers
+		let PrivateKey(private_key_bytes) = private_key;
+		let Message(message_bytes) = message;
+
+		unsafe {
+			// signature_length should probably be mutable, but rust warns of unnecessary mut
+			let signature_length = crypto_sign_bytes();
+			let mut signature_bytes = vec![0; signature_length];
+			assert_eq!(private_key_bytes.len(), crypto_sign_secretkeybytes());
+
+			// This func wasn't documented to return anything, and source code shows it always returns zero
+			let _ = crypto_sign_detached(
+				signature_bytes.as_mut_ptr(), &mut (signature_length as c_ulonglong),
+				message_bytes.as_ptr(), message_bytes.len() as c_ulonglong,
+				private_key_bytes.as_ptr(),
+			);
+			signature_bytes.truncate(signature_length);
+			assert_eq!(private_key_bytes.len(), signature_length);
+			Signature(signature_bytes)
+		}
+	}
+
+	pub fn check(message: &Message, signature: &Signature, public_key: &PublicKey) -> Result<(), &'static str> {
+		let Message(message_bytes) = message;
+		let Signature(signature_bytes) = signature;
+		let PublicKey(public_key_bytes) = public_key;
+		let result = unsafe {
+			crypto_sign_verify_detached(
+				signature_bytes.as_ptr(),
+				message_bytes.as_ptr(), message_bytes.len() as c_ulonglong,
+				public_key_bytes.as_ptr(),
+			)
+		};
+		match result {
+			0 => Ok(()),
+			-1 => Err("the signature fails verification"),
+			_ => panic!("crypto_sign_verify_detached is only defined to return 0 and -1, not {}", result)
+		}
 	}
 }
 
