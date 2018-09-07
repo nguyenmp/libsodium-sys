@@ -13,7 +13,6 @@ export LDFLAGS="${LDFLAGS} -s ASSERTIONS=0"
 export LDFLAGS="${LDFLAGS} -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s ALIASING_FUNCTION_POINTERS=1"
 export LDFLAGS="${LDFLAGS} -s DISABLE_EXCEPTION_CATCHING=1"
 export LDFLAGS="${LDFLAGS} -s ELIMINATE_DUPLICATE_FUNCTIONS=1"
-export LDFLAGS_DIST="-s NO_FILESYSTEM=1"
 export CFLAGS="-Os"
 
 echo
@@ -110,9 +109,9 @@ if [ "$DIST" = yes ]; then
       };
       Module.useBackupModule = function () {
         var Module = _Module;
-        Module.onAbort = undefined;
-        Module.onRuntimeInitialized = undefined;
-        Module.useBackupModule = undefined;
+        Object.keys(Module).forEach(function(k) {
+          delete Module[k];
+        });
         $(cat "${PREFIX}/lib/libsodium.asm.tmp.js" | sed 's|use asm||g')
       };
       $(cat "${PREFIX}/lib/libsodium.wasm.tmp.js")
