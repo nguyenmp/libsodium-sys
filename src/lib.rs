@@ -332,3 +332,13 @@ fn init() {
 
 	assert!(result >= 0);
 }
+
+pub fn generate_password(num_chars: usize, alphabet: Vec<char>) -> String {
+	let mut chars : Vec<char> = vec![];
+	for _ in 0..num_chars {
+		let index : usize = random::range(alphabet.len() as u32 - 1) as usize;
+		chars.push(*alphabet.get(index).unwrap());
+	}
+	let result : String = chars.into_iter().collect();
+	result
+}
